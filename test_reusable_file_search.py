@@ -36,6 +36,11 @@ def shortcode(ref: str) -> str:
     return f'{{{{< readfile file="{ref}" >}}}}'
 
 
+def shortcode_spaced(ref: str) -> str:
+    """Variant with spaces around the equals sign."""
+    return f'{{{{< readfile file = "{ref}" >}}}}'
+
+
 # ---------------------------------------------------------------------------
 # find_usages
 # ---------------------------------------------------------------------------
@@ -134,6 +139,20 @@ class TestFindUsages:
 
         usages, missing = find_usages(rd, cd)
 
+        assert len(usages[r.as_posix()]) == 1
+        assert missing == set()
+
+    def test_shortcode_with_spaces_around_equals(self, tmp_path):
+        rd = tmp_path / "reusable"
+        cd = tmp_path / "content"
+        rd.mkdir(); cd.mkdir()
+
+        r = make_reusable(rd, "note.md")
+        make_content(cd, "page.md", shortcode_spaced("content/reusable/note.md"))
+
+        usages, missing = find_usages(rd, cd)
+
+        assert r.as_posix() in usages
         assert len(usages[r.as_posix()]) == 1
         assert missing == set()
 

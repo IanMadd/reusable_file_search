@@ -21,7 +21,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-READFILE_PATTERN = re.compile(r'{{<\s*readfile\s+file="([^"]+)"\s*>}}')
+READFILE_PATTERN = re.compile(r'{{<\s*readfile\s+file\s*=\s*"([^"]+)"\s*>}}')
 
 
 def find_usages(
