@@ -24,6 +24,31 @@ from pathlib import Path
 READFILE_PATTERN = re.compile(r'{{<\s*readfile\s+file\s*=\s*"([^"]+)"\s*>}}')
 
 
+def is_excluded_reusable_file(path: Path) -> bool:
+    """Return True when a reusable Markdown file should be excluded from audit."""
+    return path.name.lower() in {"readme.md", "index.md"}
+
+
+def is_excluded_content_file(path: Path) -> bool:
+    """Return True when a content Markdown file should be excluded from scanning."""
+    return path.name.lower() == "readme.md"
+
+
+def is_excluded_reference(ref: str) -> bool:
+    """Return True when a shortcode reference points to an excluded file."""
+    ref_path = Path(ref)
+    file_name = ref_path.name.lower()
+
+    if file_name == "readme.md":
+        return True
+
+    # Only ignore index.md when it belongs to a reusable path.
+    if file_name == "index.md" and "reusable" in {part.lower() for part in ref_path.parts}:
+        return True
+
+    return False
+
+
 def find_usages(
     reusable_dir: Path, content_dir: Path
 ) -> tuple[dict[str, list[str]], set[str]]:
@@ -39,6 +64,8 @@ def find_usages(
     # Collect all reusable files and normalise their paths as they appear in shortcodes.
     reusable_files: dict[str, Path] = {}
     for f in reusable_dir.rglob("*.md"):
+        if is_excluded_reusable_file(f):
+            continue
         # Hugo readfile paths are typically relative to the project root (content/).
         # Store both the full path and a normalised string for matching.
         reusable_files[f.as_posix()] = f
@@ -52,6 +79,9 @@ def find_usages(
 
     # Walk every Markdown file in the content directory.
     for content_file in content_dir.rglob("*.md"):
+        if is_excluded_content_file(content_file):
+            continue
+
         try:
             text = content_file.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
@@ -60,6 +90,9 @@ def find_usages(
 
         for match in READFILE_PATTERN.finditer(text):
             ref = match.group(1)  # e.g. "content/reusable/md/some_file.md"
+
+            if is_excluded_reference(ref):
+                continue
 
             # Try to resolve the referenced path against known reusable files.
             # Match on the suffix of the path so drive/root differences don't matter.

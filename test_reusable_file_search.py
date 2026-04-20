@@ -156,6 +156,45 @@ class TestFindUsages:
         assert len(usages[r.as_posix()]) == 1
         assert missing == set()
 
+    def test_readme_file_in_reusable_is_excluded(self, tmp_path):
+        rd = tmp_path / "reusable"
+        cd = tmp_path / "content"
+        rd.mkdir(); cd.mkdir()
+
+        readme = make_reusable(rd, "README.md")
+        make_content(cd, "page.md", shortcode("content/reusable/README.md"))
+
+        usages, missing = find_usages(rd, cd)
+
+        assert readme.as_posix() not in usages
+        assert "content/reusable/README.md" not in missing
+
+    def test_index_file_in_reusable_is_excluded(self, tmp_path):
+        rd = tmp_path / "reusable"
+        cd = tmp_path / "content"
+        rd.mkdir(); cd.mkdir()
+
+        index_file = make_reusable(rd, "index.md")
+        make_content(cd, "page.md", shortcode("content/reusable/index.md"))
+
+        usages, missing = find_usages(rd, cd)
+
+        assert index_file.as_posix() not in usages
+        assert "content/reusable/index.md" not in missing
+
+    def test_content_readme_file_is_not_scanned(self, tmp_path):
+        rd = tmp_path / "reusable"
+        cd = tmp_path / "content"
+        rd.mkdir(); cd.mkdir()
+
+        reusable_file = make_reusable(rd, "tip.md")
+        make_content(cd, "README.md", shortcode("content/reusable/tip.md"))
+
+        usages, missing = find_usages(rd, cd)
+
+        assert usages[reusable_file.as_posix()] == []
+        assert missing == set()
+
 
 # ---------------------------------------------------------------------------
 # inline_singles
